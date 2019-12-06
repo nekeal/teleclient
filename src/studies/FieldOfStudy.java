@@ -1,14 +1,15 @@
 package studies;
-
 import APIClient.Client;
 
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 
-public class FieldOfStudy {
+public class FieldOfStudy extends SavedModel<String, String, String> {
     private String name;
     private String slug;
     private int id;
     private ArrayList<Subject> subjects;
+
     public FieldOfStudy(String name, String slug) {
         this.name = name;
         this.slug = slug;
@@ -22,25 +23,19 @@ public class FieldOfStudy {
         return slug;
     }
 
-    public void fetchSubjects(){
-        //Docelowo zaciąganie przedmiotów z API
+    private void fetchSubjects(){
+        // TODO: Docelowo zaciąganie przedmiotów z API
         subjects = SubjectFactory.getSubjects(this, 10);
     }
-
-    public ArrayList<Subject> getSubjects(){
+    public ArrayList<Subject> getSubjects() {
         if(subjects == null)
             fetchSubjects();
+        System.out.println(ResourceFactory.getResources(subjects.get(0), 1));
         return subjects;
-    }
-    public int getId() {
-        return id;
     }
 
     public void addSubject(Subject subject){
-        if(subjects==null){
-            fetchSubjects();
-        }
-        subjects.add(subject);
+        getSubjects().add(subject);
         Client.saveSubject(subject, this);
     }
     public void removeSubject(Subject subject){

@@ -2,6 +2,8 @@ package gui;
 
 import APIClient.Client;
 import studies.FieldOfStudy;
+import studies.Resource;
+import studies.ResourceFactory;
 import studies.Subject;
 
 import javax.swing.*;
@@ -14,7 +16,7 @@ public class StudiesGUI {
     private JPanel mainPanel;
     private JComboBox<FieldOfStudy> fieldOfStudiesCBox;
     private JComboBox subjectCBox;
-    private JComboBox comboBox3;
+    private JComboBox resourceCBox;
     private JTextField studiesName;
     private JTextField studiesSlug;
     private JButton deleteStudiesBtn;
@@ -25,14 +27,29 @@ public class StudiesGUI {
     private JSpinner subjectSemesterSpin;
     private JButton deleteSubjectBtn;
     private JButton saveSubjectBtn;
+    private JButton dodajNowyMaterialButton;
+    private JTextField resourceDescription;
+    private JTextField resourceLink;
+    private JButton deleteResourceBtn;
+    private JButton saveResourceBtn;
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Studies");
         frame.setContentPane(new StudiesGUI().mainPanel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
-        frame.setSize(500, 500);
+        frame.setSize(800, 500);
         frame.setVisible(true);
+    }
+
+    private void createUIComponents() {
+        fieldOfStudiesCBox = new JComboBox(new DefaultComboBoxModel());
+        deleteStudiesBtn = new DeleteButton();
+        deleteSubjectBtn = new DeleteButton();
+        deleteResourceBtn = new DeleteButton();
+        saveStudiesBtn = new SaveButton();
+        saveSubjectBtn = new SaveButton();
+        saveResourceBtn = new SaveButton();
     }
 
     public StudiesGUI() {
@@ -40,8 +57,6 @@ public class StudiesGUI {
         fieldOfStudiesCBox.setModel(new DefaultComboBoxModel(fieldOfStudiesList.toArray()));
         fieldOfStudiesCBox.setSelectedIndex(-1);
         updateFieldOfStudyForm();
-        deleteStudiesBtn.setBackground(new Color(244, 67, 54));
-        saveStudiesBtn.setBackground(new Color(76, 175, 80));
         saveStudiesBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -51,7 +66,7 @@ public class StudiesGUI {
                     fieldOfStudiesList.add(selected);
                     System.out.println(selected.toString());
                 } else {
-                    selected.save(studiesName.getText(), studiesSlug.getText());
+                    selected = selected.save(studiesName.getText(), studiesSlug.getText());
                 }
                 fieldOfStudiesCBox.removeAllItems();
                 fieldOfStudiesCBox.setModel(new DefaultComboBoxModel(fieldOfStudiesList.toArray()));
@@ -64,6 +79,7 @@ public class StudiesGUI {
                 FieldOfStudy selected = getSelectedFieldOfStudy();
                 updateFieldOfStudyForm();
                 updateSubjectCBox();
+                updateResourceCBox();
 //                subjectCBox.setSelectedIndex(-1);
             }
         });
@@ -102,6 +118,8 @@ public class StudiesGUI {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 updateSubjectForm();
+                updateResourceCBox();
+
             }
         });
         deleteSubjectBtn.addActionListener(new ActionListener() {
@@ -112,13 +130,73 @@ public class StudiesGUI {
                 getSelectedFieldOfStudy().removeSubject(selected);
             }
         });
+        resourceCBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                updateResourceCBox();
+            }
+        });
+        deleteResourceBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                Resource selected = getSelectedResource();
+                if(selected == null)
+                    return;
+//                resourceCBox.removeItem(selected);
+                getSelectedSubject().removeResource(selected);
+                updateResourceCBox();
+            }
+        });
+        saveResourceBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                if (getSelectedSubject() == null)
+                    return;
+                Resource selected = getSelectedResource();
+                String resourceDescriptionFieldValue = resourceDescription.getText();
+                String resourceLinkFieldValue = resourceLink.getText();
+                if (selected == null) {
+                    selected = new Resource(resourceDescriptionFieldValue, resourceLinkFieldValue);
+                    getSelectedSubject().addResource(selected);
+                } else
+                    selected = (Resource) selected.save(resourceDescriptionFieldValue, resourceLinkFieldValue, getSelectedSubject());
+                updateResourceCBox();
+            }
+        });
     }
 
-    private void createUIComponents() {
-        fieldOfStudiesCBox = new JComboBox(new DefaultComboBoxModel());
+    private FieldOfStudy getSelectedFieldOfStudy() {
+        return (FieldOfStudy) fieldOfStudiesCBox.getSelectedItem();
     }
 
-    public void updateFieldOfStudyForm() {
+    private Subject getSelectedSubject() {
+        return (Subject) subjectCBox.getSelectedItem();
+    }
+
+    public Resource getSelectedResource(){
+        return (Resource) resourceCBox.getSelectedItem();
+    }
+
+    private void updateSubjectCBox() {
+        FieldOfStudy selected = getSelectedFieldOfStudy();
+        if (selected == null)
+            subjectCBox.setModel(new DefaultComboBoxModel());
+        else{
+            subjectCBox.setModel(new DefaultComboBoxModel(selected.getSubjects().toArray()));
+        }
+        updateSubjectForm();
+    }
+    private void updateResourceCBox() {
+        Subject selected = getSelectedSubject();
+        if (selected == null)
+            resourceCBox.setModel(new DefaultComboBoxModel());
+        else{
+            resourceCBox.setModel(new DefaultComboBoxModel(selected.getResources().toArray()));
+        }
+        updateResourceForm();
+    }
+
+    private void updateFieldOfStudyForm() {
         FieldOfStudy field = getSelectedFieldOfStudy();
         if (field == null) {
             studiesName.setText("");
@@ -129,33 +207,26 @@ public class StudiesGUI {
         }
     }
 
-    public FieldOfStudy getSelectedFieldOfStudy() {
-        return (FieldOfStudy) fieldOfStudiesCBox.getSelectedItem();
-    }
-
-    public Subject getSelectedSubject() {
-        return (Subject) subjectCBox.getSelectedItem();
-    }
-
-    public void updateSubjectCBox() {
-        FieldOfStudy selected = getSelectedFieldOfStudy();
-        if (selected == null)
-            subjectCBox.setModel(new DefaultComboBoxModel());
-        else{
-            subjectCBox.setModel(new DefaultComboBoxModel(selected.getSubjects().toArray()));
-        }
-        updateSubjectForm();
-    }
-
-    public void updateSubjectForm() {
+    private void updateSubjectForm() {
         FieldOfStudy field = getSelectedFieldOfStudy();
         Subject subject = getSelectedSubject();
-        if (field == null) {
+        if (field == null || subject == null) {
             subjectName.setText("");
             subjectSemesterSpin.setValue(0);
         } else {
             subjectName.setText(subject.getName());
             subjectSemesterSpin.setValue(subject.getSemester());
+        }
+    }
+    private void updateResourceForm() {
+        Subject subject = getSelectedSubject();
+        Resource resource = getSelectedResource();
+        if (subject == null || resource == null) {
+            resourceDescription.setText("");
+            resourceLink.setText("");
+        } else {
+            resourceDescription.setText(resource.getDescription());
+            resourceLink.setText(resource.getLink());
         }
     }
 }
